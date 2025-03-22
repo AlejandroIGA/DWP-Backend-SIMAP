@@ -78,7 +78,7 @@ router.put('/update/:id', async (req, res) => {
         return res.status(201).send({ msg: 'Espacio actualizado correctamente' });
     } catch (error) {
         console.log('ERROR PUT /spaces', error);
-        return res.status(500).send({ msg: 'Error al actualizar la tarea' });
+        return res.status(500).send({ msg: 'Error al actualizar el espacio' });
     }
 });
 
@@ -88,7 +88,7 @@ router.delete('/delete/:id', async (req, res) => {
         await db.collection('spaces').doc(id).delete();
         return res.status(200).send({ msg: "Espacio eliminado correctamente" });
     } catch (error) {
-        return res.status(500).send({ msg: 'Error al eliminar la tarea' });
+        return res.status(500).send({ msg: 'Error al eliminar el espacios' });
     }
 })
 

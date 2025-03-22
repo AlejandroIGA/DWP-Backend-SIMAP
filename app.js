@@ -32,11 +32,14 @@ const spacesService = require('./spaces');
 const notificationsService = require('./notifications');
 const devicesService = require('./devices');
 const authService = require('./auth');
+const cropsService = require('./crops');
+
+app.use('/', authService);
 
 app.use('/dashboard/spaces', spacesService);
 app.use('/dashboard/notifications', notificationsService);
 app.use('/dashboard/devices', devicesService);
-app.use('/', authService);
+app.use('/dashboard/crops', cropsService);
 
 
 app.listen(port, () => {
