@@ -11,7 +11,6 @@ router.get('/:user_id', async (req, res) => {
         const { user_id } = req.params;
         const spaceRef = db.collection('spaces');
         const registers = await spaceRef.where('user_id', '==', user_id).get();
-
         if (registers.empty) {
             return res.status(400).send({ msg: "No hay espacios registrados" })
         }

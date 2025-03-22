@@ -31,10 +31,12 @@ initializeApp({
 const spacesService = require('./spaces');
 const notificationsService = require('./notifications');
 const devicesService = require('./devices');
+const authService = require('./auth');
 
 app.use('/dashboard/spaces', spacesService);
 app.use('/dashboard/notifications', notificationsService);
 app.use('/dashboard/devices', devicesService);
+app.use('/', authService);
 
 
 app.listen(port, () => {
