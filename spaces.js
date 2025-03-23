@@ -15,13 +15,23 @@ router.get('/:user_id', async (req, res) => {
             return res.status(400).send({ msg: "No hay espacios registrados" })
         }
 
-        registers.forEach(doc => {
+        for (const doc of registers.docs) {
             const spaceData = doc.data();
+
+            // Consultar las plantas asociadas a este espacio
+            const cropRef = db.collection('crops');
+            const cropQuery = await cropRef.where('space', '==', spaceData.name).get();
+
+            // Contar el número de plantas
+            const plantCount = cropQuery.size;
+
+            // Agregar el espacio con el número de plantas a la respuesta
             spaces.push({
                 id: doc.id,
-                ...spaceData
+                ...spaceData,
+                members: plantCount // Número de plantas asociadas
             });
-        });
+        }
 
         return res.status(201).send({ msg: "Espacios encontrados", data: spaces });
     } catch (error) {
@@ -72,9 +82,27 @@ router.put('/update/:id', async (req, res) => {
 
     try {
         const spaceRef = db.collection('spaces').doc(id);
+        const spaceDoc = await spaceRef.get();
+        const oldName = spaceDoc.data().name;
+
         await spaceRef.update({
             name
         })
+
+        const cropRef = db.collection('crops');
+        const cropQuery = await cropRef.where('space', '==', oldName).get();
+
+        if (!cropQuery.empty) {
+            const batch = db.batch(); // Usar un batch para múltiples actualizaciones
+
+            cropQuery.forEach((doc) => {
+                const cropDocRef = db.collection('crops').doc(doc.id);
+                batch.update(cropDocRef, { space: name }); // Actualizar el campo "space"
+            });
+
+            await batch.commit(); // Ejecutar todas las actualizaciones en lote
+        }
+
         return res.status(201).send({ msg: 'Espacio actualizado correctamente' });
     } catch (error) {
         console.log('ERROR PUT /spaces', error);
@@ -85,7 +113,27 @@ router.put('/update/:id', async (req, res) => {
 router.delete('/delete/:id', async (req, res) => {
     try {
         const { id } = req.params;
+
+        const spaceDoc = await db.collection('spaces').doc(id).get();
+        const spaceData = spaceDoc.data();
+        const spaceName = spaceData.name;
+
         await db.collection('spaces').doc(id).delete();
+
+        const cropRef = db.collection('crops');
+        const cropQuery = await cropRef.where('space', '==', spaceName).get();
+
+        if (!cropQuery.empty) {
+            const batch = db.batch(); // Usar un batch para múltiples actualizaciones
+
+            cropQuery.forEach((doc) => {
+                const cropRef = db.collection('crops').doc(doc.id);
+                batch.update(cropRef, { space: "" }); // Actualizar el campo "space"
+            });
+
+            await batch.commit(); // Ejecutar todas las actualizaciones en lote
+        }
+
         return res.status(200).send({ msg: "Espacio eliminado correctamente" });
     } catch (error) {
         return res.status(500).send({ msg: 'Error al eliminar el espacios' });

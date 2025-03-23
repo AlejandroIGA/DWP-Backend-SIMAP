@@ -1,12 +1,12 @@
-const express = require('express')
-const cors = require('cors')
+const express = require('express');
+const cors = require('cors');
 const { initializeApp, cert } = require('firebase-admin/app');
+const authMiddleware = require('./authMiddleware'); // Importar el middleware
 
+const app = express();
+const port = 3000;
 
-const app = express()
-const port = 3000
-
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 
 require('dotenv').config();
@@ -26,22 +26,25 @@ const serviceAccount = {
 
 initializeApp({
     credential: cert(serviceAccount)
-})
+});
 
 const spacesService = require('./spaces');
 const notificationsService = require('./notifications');
 const devicesService = require('./devices');
 const authService = require('./auth');
 const cropsService = require('./crops');
+const profileService = require('./profile');
 
+// Rutas públicas (sin autenticación)
 app.use('/', authService);
 
-app.use('/dashboard/spaces', spacesService);
-app.use('/dashboard/notifications', notificationsService);
-app.use('/dashboard/devices', devicesService);
-app.use('/dashboard/crops', cropsService);
-
+// Rutas protegidas (requieren autenticación)
+app.use('/dashboard/spaces', authMiddleware, spacesService);
+app.use('/dashboard/notifications', authMiddleware, notificationsService);
+app.use('/dashboard/devices', authMiddleware, devicesService);
+app.use('/dashboard/crops', authMiddleware, cropsService);
+app.use('/dashboard/profile', authMiddleware, profileService);
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+    console.log(`Servidor escuchando en el puerto ${port}`);
+});
