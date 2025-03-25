@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { getFirestore, Filter } = require('firebase-admin/firestore');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
 
 const db = getFirestore();
 const SECRET_KEY = '3$taE$UnaClav3D3$3gur1dad';
@@ -70,26 +71,54 @@ router.post('/login', async (req, res) => {
         return res.status(400).send({ msg: "Credenciales incorrectas" });
     }
 
-    // Actualizar el campo lastLogin
+    // Actualizar el campo lastLogin y el MFA
+    const secret = speakeasy.generateSecret({ length: 20 });
     await userRef.doc(user_id).update({
-        lastLogin: new Date()
+        mfa: secret.base32
     });
-
-    // Crear token JWT
-    const token = jwt.sign(
-        { id: user_id, email: userData.email },
-        SECRET_KEY,
-        { expiresIn: '40m' }
-    );
-
-    res.setHeader('token', token);
-    res.setHeader('Access-Control-Expose-Headers', 'token'); // Exponer el header 'token'
 
     return res.status(200).send({
         msg: "Credenciales correctas",
-        user: user_id,
+        secret: secret.otpauth_url
     });
 });
+
+router.post('/verify-otp', async (req, res) => {
+    const { email, token } = req.body;
+
+    const userRef = db.collection('simapUsers');
+    const registers = await userRef.where('email', '==', email).get();
+
+    const doc = registers.docs[0];
+    const userData = doc.data();
+    const user_id = doc.id;
+
+    const verified = speakeasy.totp.verify({
+        secret: userData.mfa,
+        encoding: 'base32',
+        token,
+        window: 1,
+    });
+
+    if (verified) {
+        await userRef.doc(user_id).update({
+            lastLogin: new Date(),
+        });
+        // Crear token JWT
+        const token = jwt.sign(
+            { id: user_id, email: userData.email },
+            SECRET_KEY,
+            { expiresIn: '40m' }
+        );
+        res.setHeader('token', token);
+        res.setHeader('Access-Control-Expose-Headers', 'token'); // Exponer el header 'token'
+
+        res.status(200).send({ success: true, user: user_id, state: userData.city });
+    } else {
+        res.status(401).send({ success: false, msg: 'Código incorrecto' });
+    }
+
+})
 
 
 module.exports = router;

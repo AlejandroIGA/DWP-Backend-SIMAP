@@ -16,7 +16,7 @@ function authMiddleware(req, res, next) {
         req.user = decoded; // Adjuntar la información del usuario a la solicitud
         next(); // Continuar con la siguiente función de middleware o ruta
     } catch (error) {
-        return res.status(401).send({ msg: "Token inválido o expirado" });
+        return res.status(401).send({ msg: "Token inválido o expirado inicie sesión nuevamente" });
     }
 }
 
