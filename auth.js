@@ -198,6 +198,10 @@ router.post('/update-psw', async (req, res) => {
         const userRef = db.collection('simapUsers');
         const registers = await userRef.where('email', '==', email).get();
 
+        if (!psw) {
+            return res.status(400).send({ msg: "Faltan datos" });
+        }
+
         const doc = registers.docs[0];
         const user_id = doc.id;
 
