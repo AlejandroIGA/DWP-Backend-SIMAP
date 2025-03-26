@@ -1,14 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 const { initializeApp, cert } = require('firebase-admin/app');
-const authMiddleware = require('./authMiddleware'); // Importar el middleware
+const authMiddleware = require('./authMiddleware');
 
 const app = express();
+const server = http.createServer(app);
 const port = 3000;
 
 app.use(cors());
 app.use(express.json());
-
 require('dotenv').config();
 
 const serviceAccount = {
@@ -34,6 +35,10 @@ const devicesService = require('./devices');
 const authService = require('./auth');
 const cropsService = require('./crops');
 const profileService = require('./profile');
+const setupWebSocket = require('./webSocketDevices');
+
+
+setupWebSocket(server);
 
 // Rutas públicas (sin autenticación)
 app.use('/', authService);
@@ -45,6 +50,6 @@ app.use('/dashboard/devices', authMiddleware, devicesService);
 app.use('/dashboard/crops', authMiddleware, cropsService);
 app.use('/dashboard/profile', authMiddleware, profileService);
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Servidor escuchando en el puerto ${port}`);
 });
