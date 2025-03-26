@@ -3,6 +3,8 @@ const { getFirestore, Filter } = require('firebase-admin/firestore');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
+const nodemailer = require('nodemailer');
+
 
 const db = getFirestore();
 const SECRET_KEY = '3$taE$UnaClav3D3$3gur1dad';
@@ -118,6 +120,95 @@ router.post('/verify-otp', async (req, res) => {
         res.status(401).send({ success: false, msg: 'Código incorrecto' });
     }
 
+})
+
+router.post('/send-code', async (req, res) => {
+    const { email } = req.body;
+    const userRef = db.collection('simapUsers');
+    const registers = await userRef.where('email', '==', email).get();
+
+    if (registers.empty) {
+        return res.status(400).send({ msg: "El correo ingresado no existe" });
+    }
+
+    const doc = registers.docs[0];
+    const user_id = doc.id;
+
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: 'karmatron58@gmail.com',
+            pass: 'ohgo vgig oyqb ccmo'
+        }
+    });
+
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const length = 6; // Longitud del captcha
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+
+    try {
+        await userRef.doc(user_id).update({
+            code: result
+        })
+
+        await transporter.sendMail({
+            from: 'Recuperación de contraseña',
+            to: email,
+            subject: 'Código de seguridad',
+            html: `Este es su código de seguridad: ${result}`
+        })
+
+        res.status(200).send({ msg: "Código enviado", success: true })
+
+    } catch (error) {
+        res.status(500).send({ msg: "Error con el servidor" })
+    }
+})
+
+router.post('/validate-code', async (req, res) => {
+    const { email, code } = req.body;
+    const userRef = db.collection('simapUsers');
+    const registers = await userRef.where('email', '==', email).where('code', '==', code).get();
+
+    if (registers.empty) {
+        return res.status(400).send({ msg: "Código invalido" });
+    }
+
+    const doc = registers.docs[0];
+    const user_id = doc.id;
+
+    try {
+        await userRef.doc(user_id).update({
+            code: null
+        })
+        res.status(200).send({ msg: "Código valido, ingrese una nueva contraseña", success: true })
+    } catch (error) {
+        res.status(500).send({ msg: "Error con el servidor" })
+    }
+})
+
+router.post('/update-psw', async (req, res) => {
+    try {
+        const { email, psw } = req.body;
+        const userRef = db.collection('simapUsers');
+        const registers = await userRef.where('email', '==', email).get();
+
+        const doc = registers.docs[0];
+        const user_id = doc.id;
+
+        const hash = await bcrypt.hash(psw, 10);
+        await userRef.doc(user_id).update({
+            password: hash
+        });
+        res.status(200).send({ msg: "Contraseña actualizada", success: true })
+    } catch (error) {
+        res.status(500).send({ msg: "Error con el servidor" })
+    }
 })
 
 
