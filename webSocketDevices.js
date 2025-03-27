@@ -8,7 +8,6 @@ function setupWebSocket(server) {
     const deviceIntervals = new Map(); // Nuevo Map para almacenar intervalos
 
     wss.on('connection', (ws) => {
-        console.log('Nueva conexión WebSocket establecida');
 
         ws.on('message', async (message) => {
             try {
@@ -17,6 +16,7 @@ function setupWebSocket(server) {
                 // Verificar que el dispositivo pertenezca al usuario
                 const deviceRef = db.collection('devices').doc(device_id);
                 const doc = await deviceRef.get();
+
 
                 if (!doc.exists || doc.data().user_id !== user_id) {
                     ws.send(JSON.stringify({ error: "Dispositivo no autorizado" }));
@@ -31,14 +31,12 @@ function setupWebSocket(server) {
 
                 // Registrar conexión
                 activeConnections.set(device_id, ws);
-                console.log(`Dispositivo conectado: ${device_id}`);
 
                 // Simular datos
                 const intervalId = setInterval(async () => {
                     if (activeConnections.has(device_id)) {
-                        console.log("Enviando datos");
-                        const min = Number(doc.data().min);
-                        const max = Number(doc.data().max);
+                        const min = Number(doc.data().min) - 3;
+                        const max = Number(doc.data().max) + 3;
                         const value = (Math.random() * (max - min) + min).toFixed(2);
                         const reading = {
                             device_id,
@@ -46,10 +44,31 @@ function setupWebSocket(server) {
                             timestamp: new Date().toISOString()
                         };
 
+                        let data = {}
+
+                        if (value < Number(doc.data().min)) {
+                            data = {
+                                user_id: user_id,
+                                name: doc.data().name,
+                                date: new Date(),
+                                description: "Valor de lectura por debajo del valor mínimo permitido",
+                            }
+                            await db.collection('notifications').add(data);
+                        }
+                        if (value > Number(doc.data().max)) {
+                            data = {
+                                user_id: user_id,
+                                name: doc.data().name,
+                                date: new Date(),
+                                description: "Valor de lectura por arriba del valor máximo permitido",
+                            }
+                            await db.collection('notifications').add(data);
+                        }
+
                         ws.send(JSON.stringify(reading));
                         await db.collection('readings').add(reading);
                     }
-                }, 30000);
+                }, 10000);
 
                 // Guardar el nuevo intervalo
                 deviceIntervals.set(device_id, intervalId);
@@ -60,7 +79,6 @@ function setupWebSocket(server) {
                         deviceIntervals.delete(device_id);
                     }
                     activeConnections.delete(device_id);
-                    console.log(`Conexión cerrada para dispositivo ${device_id}`);
                 });
 
             } catch (error) {

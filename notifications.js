@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
 router.delete('/delete/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await db.collection('notificactions').doc(id).delete();
+        await db.collection('notifications').doc(id).delete();
         return res.status(200).send({ msg: "Notificación eliminada" })
     } catch (error) {
         return res.status(500).send({ msg: "Error al eliminar la notificación" })
