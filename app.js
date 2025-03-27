@@ -8,7 +8,11 @@ const app = express();
 const server = http.createServer(app);
 const port = 3000;
 
-app.use(cors());
+app.use(cors({
+    origin: 'https://dwp-frontend-simap.onrender.com',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+}));
 app.use(express.json());
 require('dotenv').config();
 
