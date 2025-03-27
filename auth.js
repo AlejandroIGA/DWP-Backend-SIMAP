@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 const db = getFirestore();
 const SECRET_KEY = '3$taE$UnaClav3D3$3gur1dad';
 
+router.get('/healt', (req, res) => res.status(200).send('OK'));
 
 router.post('/register', async (req, res) => {
     let { name, phone, city, country, email, password } = req.body;
