@@ -31,8 +31,7 @@ const serviceAccount = {
 
 initializeApp({
     credential: cert(serviceAccount)
-}).then(() => console.log("firebase conectado"))
-    .catch(err => console.error("Error Firebase:", err));
+})
 
 const spacesService = require('./spaces');
 const notificationsService = require('./notifications');
