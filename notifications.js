@@ -8,7 +8,7 @@ router.get('/:user_id', async (req, res) => {
     try {
         const { user_id } = req.params;
         const notificationsRef = db.collection('notifications');
-        const registers = await notificationsRef.where('user_id', '==', user_id).get();
+        const registers = await notificationsRef.where('user_id', '==', user_id).orderBy('date', 'desc').get();
 
         if (registers.empty) {
             return res.status(400).send({ msg: "No tiene notificaciones" });
@@ -24,7 +24,7 @@ router.get('/:user_id', async (req, res) => {
 
         return res.status(201).send({ msg: "Notificaciones encontradas", data: notifications })
     } catch (error) {
-        return res.status(500).send({ msg: "Error al obtener los espacios" })
+        return res.status(500).send({ msg: "Error al obtener las notificaciones" })
     }
 });
 
